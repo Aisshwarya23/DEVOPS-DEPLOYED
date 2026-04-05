@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   test-and-build:
@@ -33,6 +34,8 @@ jobs:
           flake8 app.py tests/test_app.py
 
       - name: Run tests
+        env:
+          PYTHONPATH: .
         run: |
           pytest
 
@@ -43,13 +46,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
+      - name: Build image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/devops-sample-app:latest .
+          docker build -t ghcr.io/${{ github.repository_owner }}/devops-deployed:latest .
 
-      - name: Push Docker image
+      - name: Push image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/devops-sample-app:latest
+          docker push ghcr.io/${{ github.repository_owner }}/devops-deployed:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,13 +62,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Ansible
+      - name: Show deploy placeholder
         run: |
-          sudo apt update
-          sudo apt install -y ansible
-          ansible-galaxy collection install community.docker
-
-      - name: Run Ansible playbook
-        run: |
-          cd ansible
-          ansible-playbook -i inventory.ini deploy.yml
+          echo "CI passed. Local Ansible deployment is handled separately on the target host."
