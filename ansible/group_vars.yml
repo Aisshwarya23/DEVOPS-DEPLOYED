@@ -1,0 +1,3 @@
+app_image: "ghcr.io/YOUR_GITHUB_USERNAME/devops-sample-app:latest"
+project_dir: "/opt/devops-sample-app"
+compose_file_src: "../docker-compose.yml"

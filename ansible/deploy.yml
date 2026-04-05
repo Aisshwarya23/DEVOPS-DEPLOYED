@@ -1,0 +1,116 @@
+- name: Provision and deploy Flask app
+  hosts: local
+  become: true
+  vars_files:
+    - group_vars.yml
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - python3-pip
+        state: present
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create application directory
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create prometheus directory
+      file:
+        path: "{{ project_dir }}/prometheus"
+        state: directory
+        mode: "0755"
+
+    - name: Create grafana datasource directory
+      file:
+        path: "{{ project_dir }}/grafana/provisioning/datasources"
+        state: directory
+        recurse: yes
+        mode: "0755"
+
+    - name: Create grafana dashboards provisioning directory
+      file:
+        path: "{{ project_dir }}/grafana/provisioning/dashboards"
+        state: directory
+        recurse: yes
+        mode: "0755"
+
+    - name: Create grafana dashboards directory
+      file:
+        path: "{{ project_dir }}/grafana/dashboards"
+        state: directory
+        recurse: yes
+        mode: "0755"
+
+    - name: Copy app.py
+      copy:
+        src: "../app.py"
+        dest: "{{ project_dir }}/app.py"
+        mode: "0644"
+
+    - name: Copy requirements.txt
+      copy:
+        src: "../requirements.txt"
+        dest: "{{ project_dir }}/requirements.txt"
+        mode: "0644"
+
+    - name: Copy Dockerfile
+      copy:
+        src: "../Dockerfile"
+        dest: "{{ project_dir }}/Dockerfile"
+        mode: "0644"
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: "../docker-compose.yml"
+        dest: "{{ project_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Copy Prometheus config
+      copy:
+        src: "../prometheus/prometheus.yml"
+        dest: "{{ project_dir }}/prometheus/prometheus.yml"
+        mode: "0644"
+
+    - name: Copy Grafana datasource config
+      copy:
+        src: "../grafana/provisioning/datasources/datasource.yml"
+        dest: "{{ project_dir }}/grafana/provisioning/datasources/datasource.yml"
+        mode: "0644"
+
+    - name: Copy Grafana dashboard provisioning config
+      copy:
+        src: "../grafana/provisioning/dashboards/dashboard.yml"
+        dest: "{{ project_dir }}/grafana/provisioning/dashboards/dashboard.yml"
+        mode: "0644"
+
+    - name: Copy Grafana dashboard JSON
+      copy:
+        src: "../grafana/dashboards/app-dashboard.json"
+        dest: "{{ project_dir }}/grafana/dashboards/app-dashboard.json"
+        mode: "0644"
+
+    - name: Stop old stack if present
+      command: docker-compose down
+      args:
+        chdir: "{{ project_dir }}"
+      ignore_errors: true
+
+    - name: Start services with docker-compose
+      command: docker-compose up -d --build
+      args:
+        chdir: "{{ project_dir }}"
