@@ -14,6 +14,9 @@ jobs:
       contents: read
       packages: write
 
+    env:
+      IMAGE_NAME: ghcr.io/aisshwarya23/devops-deployed:latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,11 +51,11 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/devops-deployed:latest .
+          docker build -t $IMAGE_NAME .
 
       - name: Push image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/devops-deployed:latest
+          docker push $IMAGE_NAME
 
   deploy:
     runs-on: ubuntu-latest
