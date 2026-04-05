@@ -1,80 +1,107 @@
+from functools import wraps
+import os
+import time
+
 from flask import Flask, jsonify
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     Counter,
     Histogram,
     generate_latest,
-    CONTENT_TYPE_LATEST
 )
-
-import time
-from functools import wraps
-import os
 
 app = Flask(__name__)
 
 REQUEST_COUNT = Counter(
     "app_requests_total",
-    "Total number of requests",
-    ["method", "endpoint", "http_status"]
+    "Total number of HTTP requests",
+    ["method", "endpoint", "status"],
 )
 
 REQUEST_LATENCY = Histogram(
     "app_request_latency_seconds",
-    "Request latency in seconds",
-    ["endpoint"]
+    "Latency of HTTP requests in seconds",
+    ["endpoint"],
 )
 
 
-def track_metrics(endpoint_name):
+def monitor(endpoint_name):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.time()
-            status_code = 200
+            status = "200"
+            method = "GET"
             try:
                 response = func(*args, **kwargs)
                 return response
             except Exception:
-                status_code = 500
-                REQUEST_COUNT.labels(
-                    method="GET",
-                    endpoint=endpoint_name,
-                    http_status=str(status_code)
-                ).inc()
+                status = "500"
                 raise
             finally:
-                latency = time.time() - start_time
-                REQUEST_LATENCY.labels(endpoint=endpoint_name).observe(latency)
+                duration = time.time() - start_time
                 REQUEST_COUNT.labels(
-                    method="GET",
+                    method=method,
                     endpoint=endpoint_name,
-                    http_status=str(status_code)
+                    status=status,
                 ).inc()
+                REQUEST_LATENCY.labels(endpoint=endpoint_name).observe(
+                    duration
+                )
+
         return wrapper
+
     return decorator
 
 
 @app.route("/")
-@track_metrics("/")
+@monitor("/")
 def home():
-    return jsonify({
-        "message": "Hello from Flask DevOps sample app",
-        "status": "success"
-    })
+    return jsonify(
+        {
+            "message": "Hello from Flask DevOps sample app",
+            "status": "success",
+        }
+    )
 
 
 @app.route("/health")
-@track_metrics("/health")
+@monitor("/health")
 def health():
-    return jsonify({
-        "status": "healthy",
-        "app_name": os.getenv("APP_NAME", "devops-sample-app")
-    })
+    return jsonify(
+        {
+            "status": "healthy",
+            "app_name": os.getenv(
+                "APP_NAME",
+                "devops-sample-app",
+            ),
+        }
+    )
+
+
+@app.route("/about")
+@monitor("/about")
+def about():
+    return jsonify(
+        {
+            "project": "DEVOPS-DEPLOYED",
+            "stack": [
+                "Flask",
+                "Docker",
+                "Prometheus",
+                "Grafana",
+                "Ansible",
+                "GitHub Actions",
+            ],
+        }
+    )
 
 
 @app.route("/metrics")
 def metrics():
-    return generate_latest(), 200, {"Content-Type": CONTENT_TYPE_LATEST}
+    return generate_latest(), 200, {
+        "Content-Type": CONTENT_TYPE_LATEST,
+    }
 
 
 if __name__ == "__main__":
