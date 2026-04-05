@@ -1,9 +1,9 @@
 from flask import Flask, jsonify
 from prometheus_client import (
- Counter,
- Histogram,
- generate_latest,
- CONTENT_TYPE_LATEST
+    Counter,
+    Histogram,
+    generate_latest,
+    CONTENT_TYPE_LATEST
 )
 
 import time
